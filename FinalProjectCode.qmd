@@ -60,7 +60,8 @@ medicare_emergency <- medicare_data %>%
     avg_submitted_charge = mean(Avg_Sbmtd_Chrg, na.rm = TRUE),
     avg_medicare_payment = mean(Avg_Mdcr_Pymt_Amt, na.rm = TRUE),
     total_beneficiaries = sum(Tot_Benes, na.rm = TRUE)
-  )
+  ) %>%
+  ungroup()
 
 # Ensure ZIP codes are consistently formatted in both datasets
 medicare_emergency$Rndrng_Prvdr_Zip5 <- sprintf("%05d", as.numeric(medicare_emergency$Rndrng_Prvdr_Zip5))
@@ -95,6 +96,7 @@ irs_categories <- irs_data %>%
     pct_middle = sum(N1[agi_stub %in% c(3, 4)]) / first(total_returns),
     pct_affluent = sum(N1[agi_stub %in% c(5, 6)]) / first(total_returns)
   ) %>%
+  ungroup() %>%
   mutate(income_category = case_when(
     pct_high_poverty >= pct_middle & pct_high_poverty >= pct_affluent ~ "high_poverty",
     pct_affluent >= pct_middle & pct_affluent >= pct_high_poverty ~ "affluent",
@@ -104,6 +106,7 @@ irs_categories <- irs_data %>%
 income_freq <- irs_categories %>%
   group_by(income_category) %>%
   summarise(count = n()) %>%
+  ungroup() %>%
   mutate(percentage = (count / sum(count)) * 100)
 
 # Format table
@@ -134,6 +137,7 @@ merged_data <- medicare_emergency %>%
 income_category_freq <- merged_data %>%
   group_by(income_category) %>%
   summarise(count = n()) %>%
+  ungroup() %>%
   mutate(percentage = (count / sum(count)) * 100)
 
 # Display formatted table
@@ -170,6 +174,7 @@ merged_analysis <- bind_rows(affluent_group, high_poverty_group)
 merged_analysis %>%
   group_by(income_category) %>%
   summarise(count = n()) %>%
+  ungroup() %>%
   mutate(percentage = (count/sum(count)) * 100) %>%
   kable(col.names = c("Income Category", "Count", "Percentage"),
         digits = 2,
@@ -208,7 +213,8 @@ median_claims_by_income <- merged_analysis %>%
   group_by(income_category) %>%
   summarize(
     median_claims = median(total_claims, na.rm = TRUE)  # Median ZIP-level claims
-  )
+  ) %>%
+  ungroup()
 
 # Calculate standard deviation
 sd_claims_by_income <- merged_analysis %>%
@@ -216,7 +222,8 @@ sd_claims_by_income <- merged_analysis %>%
   group_by(income_category) %>%
   summarize(
     sd_total_claims = sd(total_claims, na.rm = TRUE)  # Standard deviation of total claims
-  )
+  ) %>%
+  ungroup()
 
 claims_comparison <- merged_analysis %>%
   filter(income_category %in% c("high_poverty", "affluent")) %>%
@@ -227,6 +234,7 @@ claims_comparison <- merged_analysis %>%
     claims_per_beneficiary = mean(claims_per_beneficiary, na.rm = TRUE),  
     mean_claims = total_claims / n_zips,  
   ) %>%
+  ungroup() %>%
   left_join(median_claims_by_income, by = "income_category") %>% 
   left_join(sd_claims_by_income, by = "income_category")
 
@@ -234,7 +242,7 @@ claims_comparison <- merged_analysis %>%
 knitr::kable(claims_comparison,
              col.names = c("Income Category", "Number of ZIPs", "Total Claims", 
                           "Claims/Beneficiary", "Mean Claims/ZIP",
-                          "Median Claims/ZIP", "SD Claims"),
+                          "Median Claims/ZIP", "Standard Deviation Claims"),
              digits = 2,
              align = c("l", "r", "r", "r", "r", "r", "r")) %>%
   kable_styling(
@@ -289,12 +297,24 @@ log_claims_comparison <- merged_analysis %>%
   summarize(
     median_log_claims = median(log_total_claims, na.rm = TRUE),
     sd_log_claims = sd(log_total_claims, na.rm = TRUE)
-  )
+  ) %>%
+  ungroup()
 
 # Display Table
-knitr::kable(log_claims_comparison,
-             col.names = c("Income Category", "Median Log Claims", "SD Log Claims"),
-             digits = 2)
+knitr::kable(
+  log_claims_comparison,
+  col.names = c("Income Category", "Median Log Claims", "Standard Deviation Log Claims"),
+  digits = 2,
+  align = c("l", "r", "r")
+) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center",
+    font_size = 12
+  ) %>%
+  row_spec(0, bold = TRUE) %>%
+  column_spec(2:3, width = "250px")
 
 # Recalculate groups to include log_claims
 set.seed(123)
@@ -333,8 +353,11 @@ ggplot(affluent_group, aes(x = log_total_claims)) +
 
 # Linearity check
 
-affluent_data <- merged_analysis %>% filter(income_category == "affluent")
-high_poverty_data <- merged_analysis %>% filter(income_category == "high_poverty")
+affluent_data <- merged_analysis %>% 
+  filter(income_category == "affluent")
+
+high_poverty_data <- merged_analysis %>% 
+  filter(income_category == "high_poverty")
 
 plot_affluent <- ggplot(affluent_data, aes(x = income_category, y = log_total_claims)) +
   geom_jitter(width = 0.2, alpha = 0.7, color = "blue") +
@@ -436,7 +459,7 @@ print(filtered_results)
 
 -   Thus, to answer our question, we see that there *is* a statistically significant difference in the frequency of claims between the high poverty and affluent groups present in the data, and our data implies that high_poverty individuals have about 18% more claims than the ones in the affluent population.
 
-### Attribution of Sources
+    ## Attribution of Sources
 
 -   <https://r-charts.com/distribution/histogram-binwidth-ggplot2/> Used this for bin width in ggplot for lots of data
 
