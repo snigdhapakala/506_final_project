@@ -377,6 +377,13 @@ ncvTest(lm_model)
 # Statistical Testing
 ###############################################
 
+t_test_result <- t.test(log_total_claims ~ income_category, 
+                        data = merged_analysis,
+                        subset = income_category %in% c("high_poverty", "affluent"))
+
+# Display t-test results
+print(t_test_result)
+
 # Exponentiate the confidence intervals for the coefficients - use HC SEs just in case
 confint_robust <- confint(lm_model, vcov = vcovHC(lm_model, type = "HC3"))
 exp_confint <- exp(confint_robust)
@@ -440,3 +447,5 @@ print(filtered_results)
 -   <https://sscc.wisc.edu/sscc/pubs/RegDiag-R/homoscedasticity.html> used this for documentation of the Breusch-Pagan test
 
 -   <https://www.rdocumentation.org/packages/lmtest/versions/0.9-40/topics/bptest> also used this for the Breusch-Pagan test
+
+-   I used ChatGPT to smooth out my report because there were some parts that didn't flow as well. I sent my original draft to it and it kept my same ideas and phrases but just used better words than I could. I am not the best at writing, but wanted the report to still have that professional tone.
